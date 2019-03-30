@@ -1,2 +1,13 @@
-# Python
-This folder contains all projects and skills practice using Python.
+### Python
+
+This repository contains all projects and skills practice using Python.
+
+# #
+
+#### Projects;
+
+- Matching Game: This memory game requires the user to find and match cards with the same hidden value by flipping them one at a time, the least amount of flips as possible.
+
+- ConnectToSQL: This code can be used to connect to a given SQL server and execute SQL code stored in a text file in a given location.
+
+- 2728 Form Extraction:  This code is used to extract specific parts of information from a patient's 2728 form.
