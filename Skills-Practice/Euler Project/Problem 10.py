@@ -11,12 +11,9 @@
 # the same method, this memory way ran much faster.
 
 def generatePrimesUpTo(n):
-    myList = [True]*(n//2)   # index i represents value = 2*i+1 (all odds up to n)
-    i = 1
-    while myList[i] <= n**(1/2) + 1:
-        comp = list(range(myList[i]**2, n, 2*myList[i]))
-        [x for x in myList if x in comp] #how to update all indices from comp in the list to false
-        i += 1
-    return [2] + myList[1:len(myList)]
+    myList = [True]*(n+1)   # index i represents value = 2*i+1 (all odds up to n)
+    for i in range(2, int(n ** 0.5) + 1):
+        myList[i**2:n+1:i] = [False]*(int(n/i)-i+1)
+    return [i for i,x in enumerate(myList) if x is True and i not in [0,1]]
 
 print(sum(generatePrimesUpTo(2000000)))
