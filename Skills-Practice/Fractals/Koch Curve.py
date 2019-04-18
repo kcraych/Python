@@ -6,21 +6,53 @@ screen_w = 1024
 screen_h = 768
 screen = pygame.display.set_mode((screen_w, screen_h))
 
-class Fractals_Utility:
+class Matrix_Utility:
     @Staticmethod
-    def matrix_manipulation(ratio, size, pos_arr, angle, theta):
-        rot_matrix = np.array([[np.cos(this.a), -np.sin(this.a)], [np.sin(this.a), np.cos(this.a)]])
-        sld_matrix = np.array([[1], [0]])
-        return size * ratio * (np.matmul(rot_matrix, pos_arr)) + sld_matrix
+    # returns points of a non-origin coordinate after a counter-clockwise rotation about the origin of angle (in radians)
+    def rot_cc_origin(angle, start_x = 1, start_y = 0):
+        matrix_rot = np.array([[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]])
+        matrix_pos = np.array([[start_x],[start_y]])
+        return np.matmul(matrix_rot, matrix_pos)
 
     @Staticmethod
-    def regular_polygon_vertex_angle_radians(n):
-        return np.deg2rad(180-(360/n))
+    # returns points of a coordinate after a horizontal and/or vertical translation
+    def translation(delta_x, delta_y, start_x = 0, start_y = 0):
+        return np.array([[start_x], [start_y]]) + np.array([[delta_x], [delta_y]])
+
+    @Staticmethod
+    def full_transformation(angle, delta_x, delta_y, start_x = 1, start_y = 0, scale = 1):
+        result_rotate = Matrix_Utility.rot_cc_origin(angle, start_x, start_y)
+        result_scale = scale * result_rotate
+        result_translate = Matrix_Utility.translation(delta_x, delta_y, result_scale[0,0], result_scale[0,1])
+        return result_translate
+
+class Polygon_Utility:
+    @Staticmethod
+    def reg_poly_angles_radians(n):
+        return [np.deg2rad(360/n), np.deg2rad(180-(360/n))]  # [inner angle, vertex angle]
+
+    @Staticmethod
+    def reg_poly_identity_coordinates_origin(n):
+        poly_angles = Polygon_Utility.reg_poly_angles_radians(n)
+        poly_vertices_x = [-np.cos(poly_angles[1] / 2)]
+        poly_vertices_y = [-np.sin(poly_angles[1] / 2)]
+        for i in range (1, n-1):
+            poly_vertices_new = Matrix_Utility.rot_cc_origin(poly_angles[0], poly_vertices_x[i-1], poly_vertices_y[i-1])
+            poly_vertices_x.append(poly_vertices_new[0,0])
+            poly_vertices_y.append(poly_vertices_new[1,0])
+
+    @Staticmethod
+    def reg_poly_coordinates(n, radius, x, y):
+        poly_angles = Polygon_Utility.reg_poly_angles_radians(n)
+
+
+
+
 
 
 class Fractals_Koch_Curve
     def __init__(self, order, ratio, size, n, pos):
-        ang = Fractals_Utility.regular_polygon_vertex_angle_radians(n)
+        ang = Fractals_Utility.reg_poly_vertex_angle_radians(n)
 
 
 class Fractals_Koch_Curve_Unit
