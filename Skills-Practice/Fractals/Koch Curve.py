@@ -57,6 +57,7 @@ class Fractal_Generation:
             start_y = unit_coordinates[1,j]
             coordinates_delta = unit_coordinates[:,[j+1]] - unit_coordinates[:,[j]]
             theta = np.arctan(coordinates_delta[1,0]/coordinates_delta[0,0])
+            theta = (180 - theta) if theta < 0 else theta
             unit_new = Utility_Fractals.unit_koch_curve(n, start_x, start_y, theta, unit_length, poly_ratio)
             koch_coordinates = np.concatenate((koch_coordinates, unit_new[:,:(n+1)]), axis=1)
         koch_coordinates = np.concatenate((koch_coordinates, unit_coordinates[:,[n+1]]), axis=1)
@@ -71,7 +72,7 @@ def draw_loop():
             if event.key == pygame.K_ESCAPE:
                 break;
 
-        curve = Fractal_Generation.koch_curve(3,0,0,0,1,1/3)
+        curve = np.transpose(Fractal_Generation.koch_curve(5,screen_w//2,screen_h//2,0,100,1/5))
         pygame.draw.lines(screen, (0, 0, 255), False, curve, 1)
         pygame.display.flip()
 
