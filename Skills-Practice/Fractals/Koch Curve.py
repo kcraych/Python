@@ -71,8 +71,10 @@ def draw_loop():
             if event.key == pygame.K_ESCAPE:
                 break;
 
-        koch_curve(0, 1/3, 100, 3, (screen_w//2, screen_h//2))
+        curve = Fractal_Generation.koch_curve(3,0,0,0,1,1/3)
+        pygame.draw.lines(screen, (0, 0, 255), False, curve, 1)
         pygame.display.flip()
+
 
 draw_loop()
 pygame.quit()
