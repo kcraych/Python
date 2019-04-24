@@ -6,9 +6,6 @@ screen_w = 1024
 screen_h = 768
 screen = pygame.display.set_mode((screen_w, screen_h))
 
-import numpy as np
-
-
 class Utility_Matrix:
     @staticmethod
     # returns new coordinates after a scale, rotation, and translation (in that order)
@@ -36,13 +33,11 @@ class Fractal_Generation:
         if order == 0:
             return Utility_Matrix.matrix_transformation(theta, pos[0], pos[1], inserts)
         else:
-            curve = np.array([pos]).T
+            curve = np.array([[0, 0]]).T
             for i in range(n + 1, 0, -1):
-                insert_transform = Utility_Matrix.matrix_transformation(angles[i - 1], curve[0, -1], curve[1, -1],
-                                                                        inserts, scales[i - 1])
-                curve = np.concatenate((curve, np.delete(insert_transform, 0, axis=1)), axis=1)
-                ord = order - 1
-            return Fractal_Generation.koch_curve_recursion(ord, n, pos, theta, scales, angles, curve)
+                inserts_transform = Utility_Matrix.matrix_transformation(angles[i - 1], curve[0, -1], curve[1, -1], inserts, scales[i - 1])
+                curve = np.concatenate((curve, np.delete(inserts_transform, 0, axis=1)), axis=1)
+            return Fractal_Generation.koch_curve_recursion(order-1, n, pos, theta, scales, angles, curve)
 
 
 def draw_loop(order, n, pos, length, ratio, theta):
@@ -56,7 +51,7 @@ def draw_loop(order, n, pos, length, ratio, theta):
 
         v_rad = Utility_Polygon.reg_poly_vertex_radians(n)
         i_rad = Utility_Polygon.reg_poly_inner_radians(n)
-        angles = np.insert([0, v_rad, 0], 2, [v_rad - i_rad] * (n - 2))
+        angles = np.insert([0.,0.],1,np.array([v_rad]*(n-1))-np.array(range(0,n-1))*i_rad)
         scales = np.insert([(1 - ratio) / 2] * 2, 1, [ratio] * (n - 1))
         inserts = np.array([[0, length], [0, 0]])
         curve = np.transpose(Fractal_Generation.koch_curve_recursion(order, n, pos, theta, scales, angles, inserts))
@@ -65,5 +60,5 @@ def draw_loop(order, n, pos, length, ratio, theta):
         pygame.display.flip()
 
 
-draw_loop(2, 3, [100, 700], 1000, 1 / 3, 0)
+draw_loop(5, 3, [100, 700], 800, 1 / 3, np.deg2rad(-35))
 pygame.quit()
