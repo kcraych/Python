@@ -63,7 +63,7 @@ class Fractal_Generation:
         angles = np.array([v_rad] * n) - np.array(range(0, n)) * i_rad
         return Utility_Methods.pattern_repeats(angles, [1]*n, pattern)
 
-def draw_loop(order, n, pos, length, ratio, theta):
+def draw_loop(order, n, pos, length, ratio, theta, m):
     while True:
         event = pygame.event.poll()
         if event.type == pygame.QUIT:
@@ -73,13 +73,13 @@ def draw_loop(order, n, pos, length, ratio, theta):
                 break;
 
         koch_curve = Fractal_Generation.koch_curve(order, n, ratio)
-        koch_curve = Utility_Methods.matrix_transformation(koch_curve, y_flip=-1)
-        poly_curve = Fractal_Generation.reg_poly_pattern(n, koch_curve)
+        koch_curve = Utility_Methods.matrix_transformation(koch_curve)
+        poly_curve = Fractal_Generation.reg_poly_pattern(m, koch_curve)
         curve = Utility_Methods.matrix_transformation(poly_curve, theta, pos[0], pos[1], length, 1, -1)
 
         pygame.draw.lines(screen, (0, 0, 255), False, curve, 1)
         pygame.display.flip()
 
-draw_loop(7, 3, [100,700], 500, 3/5, 0)
+draw_loop(9, 5, [100,700], 500, 1/3, 0, 5)
 pygame.quit()
 
