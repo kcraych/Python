@@ -16,24 +16,36 @@ class Utility_Math:
         return result_translate
 
     @staticmethod
-    # returns the coordinates from taking a pattern given by a set of coordinates starting at the origin and repeating
-    # the pattern after scaling to various lengths and rotating at various angles, always connecting the next scale and
-    # rotation at the final point of the previous scaled and rotation.
-    def pattern_repeats(angles, scales, pattern = np.array([[0, 0], [1, 0]])):
-        repeats = np.array([[0, 0]])
-        for i in range(1, len(angles) + 1):
-            section = Utility_Math.matrix_transformation(pattern, angles[i - 1], repeats[-1, 0], repeats[-1, 1], scales[i - 1])
-            repeats = np.concatenate((repeats, np.delete(section, 0, axis=0)), axis=0)
-        return repeats
+    # returns sets of coordinates from taking a pattern given by a set of coordinates
+    # starting at the origin and repeating the pattern after scaling to various lengths and rotating at various angles.
+    def pattern_repeats_disjoint(angles, scales, pattern = [np.array([[0, 0], [1, 0]])]):
+        repeats = np.empty(shape=(len(angles),len(pattern)), dtype=object)
+        for i in range(len(angles)):
+            delta_x = 0 if i == 0 else repeats[i-1, 0][-1, 0]
+            delta_y = 0 if i == 0 else repeats[i-1, 0][-1, 1]
+            for j in range(len(pattern)):
+                test = Utility_Math.matrix_transformation(pattern[j], angles[i], delta_x, delta_y, scales[i])
+                repeats[i, j] = Utility_Math.matrix_transformation(pattern[j], angles[i], delta_x, delta_y, scales[i])
+        return repeats.flatten()
+
+    @staticmethod
+    # returns one set of coordinates, given multiple sets of coordinates where the last coordinate and the first
+    # coordinate of consecutive sets match, to form a continuous set of coordinates (rather than disjoint).
+    def pattern_repeats_continuous(disjoint):
+        continuous = disjoint[0]
+        for i in range(len(disjoint)-1):
+            continuous = np.concatenate((continuous, np.delete(disjoint[i+1], 0, axis=0)), axis=0)
+        return [continuous]
 
     @staticmethod
     # returns the result of recursively calling a pattern repeat
-    def pattern_recursion(order, n, angles, scales, pattern = np.array([[0, 0], [1, 0]])):
+    def pattern_recursion(order, angles, scales, pattern = [np.array([[0, 0], [1, 0]])]):
         if order == 0:
             return pattern
         else:
-            new_pattern = Utility_Math.pattern_repeats(angles, scales, pattern)
-            return Utility_Math.pattern_recursion(order-1, n, angles, scales, new_pattern)
+            new_pattern = Utility_Math.pattern_repeats_disjoint(angles, scales, pattern)
+            new_pattern = Utility_Math.pattern_repeats_continuous(new_pattern) if len(new_pattern) > 1 else new_pattern
+            return Utility_Math.pattern_recursion(order-1, angles, scales, new_pattern)
 
     @staticmethod
     # returns the angle in radians at each vertex of a regular polygon with n sides
@@ -51,9 +63,9 @@ class Utility_Draw:
     # final coordinates are centered on the screen and takes up 95% of it's tightest fitting dimension (h or w)
     @staticmethod
     def image_screen_fit(screen_w, screen_h, coordinates):
-        coordinates_combined = np.empty([0,2])
-        for i in range(len(coordinates)):
-            coordinates_combined = np.concatenate((coordinates_combined, coordinates[i]), axis=0)
+        coordinates_combined = coordinates[0]
+        for i in range(len(coordinates)-1):
+            coordinates_combined = np.concatenate((coordinates_combined, coordinates[i+1]), axis=0)
         img_w = max(coordinates_combined[:, 0]) - min(coordinates_combined[:, 0])
         img_h = max(coordinates_combined[:, 1]) - min(coordinates_combined[:, 1])
         scale = .95 * min(screen_w / img_w, screen_h / img_h)
@@ -92,8 +104,8 @@ class Fractal_Generation:
         i_rad = Utility_Math.reg_poly_inner_radians(n)
         angles = np.insert([0., 0.], 1, np.array([v_rad] * (n - 1)) - np.array(range(0, n - 1)) * i_rad)
         scales = np.insert([(1 - ratio) / 2] * 2, 1, [ratio] * (n - 1))
-        curve = Utility_Math.pattern_recursion(order, n, angles, scales)
-        return Utility_Math.matrix_transformation(curve, y_flip=-1)
+        curve = Utility_Math.pattern_recursion(order, angles, scales)
+        return Utility_Math.matrix_transformation(curve[0], y_flip=-1)
 
     # returns coordinates for a regular polygon with the lower left coordinate at origin.
     # each edge is replaced with the given pattern (default is a normal straight line edge)
@@ -104,35 +116,47 @@ class Fractal_Generation:
         v_rad = Utility_Math.reg_poly_vertex_radians(n)
         i_rad = Utility_Math.reg_poly_inner_radians(n)
         angles = np.array([v_rad] * n) - np.array(range(0, n)) * i_rad
-        return [Utility_Math.pattern_repeats(angles, [1]*n, pattern)]
+        poly_disjoint = Utility_Math.pattern_repeats_disjoint(angles, [1]*n, [pattern])
+        return Utility_Math.pattern_repeats_continuous(poly_disjoint)
 
-    def cyclic_symmetry_pattern(n, pattern=np.array([[0,0],[1,0]])):
-        i_rad = Utility_Math.reg_poly_inner_radians(n)
-        angles = np.array(range(0, n)) * i_rad
+    def cyclic_symmetry_pattern(z, pattern=np.array([[0,0],[1,0]])):
+        i_rad = Utility_Math.reg_poly_inner_radians(z)
+        angles = np.array(range(0, z)) * i_rad
         cycles = []
-        for i in range(n):
-            cycles.append(Utility_Math.pattern_repeats([angles[i]], [1], pattern))
+        for i in range(z):
+            cycle_disjoint = Utility_Math.pattern_repeats_disjoint([angles[i]], [1], pattern)
+            cycles.extend(Utility_Math.pattern_repeats_continuous(cycle_disjoint))
         return cycles
 
     # returns coordinates of a koch_curve being used with a regular polygon base shape
     # utilizes the koch_curve_line to get the pattern coordinates to use in the reg_poly_pattern to generate final
     # coordinate set for desired koch curve
-    def koch_curve(order, n, ratio, base, m, invert):
+    def koch_curve_reg_poly(order, n, ratio, m, invert):
         koch_curve = Fractal_Generation.koch_curve_line(order, n, ratio)
-        if base == "reg-poly":
-            curve = Fractal_Generation.reg_poly_pattern(m, koch_curve, invert)
-        elif base == "cyclic":
-            curve = Fractal_Generation.cyclic_symmetry_pattern(m, koch_curve)
+        curve = Fractal_Generation.reg_poly_pattern(m, koch_curve, invert)
+        return curve
+
+    def koch_curve_z_group(order, n, ratio, z):
+        v_rad = Utility_Math.reg_poly_vertex_radians(n)
+        i_rad = Utility_Math.reg_poly_inner_radians(n)
+        angles = np.insert([0., 0.], 1, np.array([v_rad] * (n - 1)) - np.array(range(0, n - 1)) * i_rad)
+        scales = np.insert([(1 - ratio) / 2] * 2, 1, [ratio] * (n - 1))
+        koch_curve = Fractal_Generation.koch_curve_line(1, n, ratio)
+        z_curve = Fractal_Generation.cyclic_symmetry_pattern(z, [koch_curve])
+        curve = Utility_Math.pattern_recursion(order, angles, scales, z_curve)
         return curve
 
 class Image_Draw:
     # returns image of a koch curve in a given screen, with a depth of n and given ratio
     # can be drawn in/out of a regular polygon base shape
-    def draw_koch_fractal(order=5, n=3, ratio=1/3, base="reg-poly", m=1, invert=False, screen_w=1024, screen_h=768, color=(0,0,0)):
+    def draw_koch_fractal(order=5, n=3, ratio=1/3, base="reg-poly", mzd=3, invert=False, screen_w=1024, screen_h=768, color=(0,0,0)):
         pygame.init()
-        curve = Fractal_Generation.koch_curve(order, n, ratio, base, m, invert)
+        if base == "reg-poly":
+            curve = Fractal_Generation.koch_curve_reg_poly(order, n, ratio, mzd, invert)
+        elif base == "z-group":
+            curve = Fractal_Generation.koch_curve_z_group(order, n, ratio, mzd)
         curve = Utility_Draw.image_screen_fit(screen_w, screen_h, curve)
         Utility_Draw.draw_image(screen_w, screen_h, curve, color)
         pygame.quit()
 
-Image_Draw.draw_koch_fractal(n=3, ratio=1/3, base="cyclic", m=3)
+Image_Draw.draw_koch_fractal(base="z-group")
